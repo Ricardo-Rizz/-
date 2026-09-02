@@ -669,3 +669,89 @@ footer {
     text-decoration: none;
   }
 }
+.god-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.offer-button {
+  color: #251b04;
+  background: var(--accent);
+}
+
+.offer-button:disabled {
+  cursor: not-allowed;
+  opacity: .45;
+}
+
+.god-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.god-card.offering {
+  animation: offering-card 1.4s ease;
+}
+
+.god-card.offering .god-avatar {
+  animation: offering-avatar 1.4s ease;
+}
+
+.god-card.offering::after {
+  content: "♨";
+  position: absolute;
+  top: 28px;
+  left: 38px;
+  color: rgba(255, 255, 255, .85);
+  font-size: 28px;
+  pointer-events: none;
+  animation: incense-smoke 1.4s ease-out forwards;
+}
+
+@keyframes offering-card {
+  0%, 100% {
+    transform: translateY(0);
+    box-shadow: var(--shadow);
+  }
+
+  40% {
+    transform: translateY(-4px);
+    box-shadow: 0 0 30px rgba(255, 209, 102, .55);
+  }
+}
+
+@keyframes offering-avatar {
+  0%, 100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+
+  45% {
+    transform: scale(1.12);
+    filter: brightness(1.35);
+  }
+}
+
+@keyframes incense-smoke {
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scale(.7) rotate(-8deg);
+  }
+
+  30% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-55px) scale(1.35) rotate(10deg);
+  }
+}
+
+@media (max-width: 650px) {
+  .god-actions {
+    grid-template-columns: 1fr;
+  }
+}
