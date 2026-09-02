@@ -1,4 +1,3 @@
-```javascript
 "use strict";
 
 const STORAGE_KEY = "examGod_v1";
@@ -659,4 +658,3 @@ if (document.readyState === "loading") {
 } else {
   init();
 }
-```
