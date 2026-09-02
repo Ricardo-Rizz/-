@@ -42,46 +42,17 @@ const EXAMS = {
 };
 
 const GODS = [
-  {
-    id: "ielts",
-    name: "雅思导师",
-    icon: "口",
-    focus: "口语与写作",
-    description: "帮助你练习表达，把想法说得更清楚。",
-    advice: "今天试着用英语完整表达一个观点。"
-  },
-  {
-    id: "toefl",
-    name: "托福导师",
-    icon: "听",
-    focus: "听力与时间管理",
-    description: "帮助你建立高效、稳定的考试节奏。",
-    advice: "设定 25 分钟专注时间，不被手机打断。"
-  },
-  {
-    id: "ap",
-    name: "AP 导师",
-    icon: "知",
-    focus: "知识点与刷题",
-    description: "帮助你拆解知识点，找到错题原因。",
-    advice: "今天整理一道错题，并写下错误原因。"
-  },
-  {
-    id: "ib",
-    name: "IB 导师",
-    icon: "路",
-    focus: "IA、EE 与长期规划",
-    description: "陪你把长期项目拆成今天能完成的一小步。",
-    advice: "今天推进 IA 或 EE 项目至少 15 分钟。"
-  }
+  { id: "ielts", name: "雅思导师", icon: "口", focus: "口语与写作", description: "帮助你练习表达，把想法说得更清楚。", advice: "今天试着用英语完整表达一个观点。" },
+  { id: "toefl", name: "托福导师", icon: "听", focus: "听力与时间管理", description: "帮助你建立高效、稳定的考试节奏。", advice: "设定 25 分钟专注时间，不被手机打断。" },
+  { id: "ap", name: "AP 导师", icon: "知", focus: "知识点与刷题", description: "帮助你拆解知识点，找到错题原因。", advice: "今天整理一道错题，并写下错误原因。" },
+  { id: "ib", name: "IB 导师", icon: "路", focus: "IA、EE 与长期规划", description: "陪你把长期项目拆成今天能完成的一小步。", advice: "今天推进 IA 或 EE 项目至少 15 分钟。" }
 ];
 
 const TIPS = [
   "先完成一个最小任务，今天就已经开始变好了。",
   "不要等状态完美，先学习 10 分钟。",
   "错题不是失败记录，而是下一次提分线索。",
-  "稳定完成小目标，比偶尔熬夜更有效。",
-  "把今天的任务做完，明天会更轻松。"
+  "稳定完成小目标，比偶尔熬夜更有效。"
 ];
 
 function defaultState() {
@@ -94,6 +65,7 @@ function defaultState() {
     incense: 5,
     streak: 0,
     lastStudyDate: "",
+    lastIncenseClaimDate: "",
     studyMinutes: 0,
     completedTasks: {},
     records: [],
@@ -107,8 +79,7 @@ let state = loadState();
 
 function loadState() {
   try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    return { ...defaultState(), ...(saved || {}) };
+    return { ...defaultState(), ...(JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}) };
   } catch {
     return defaultState();
   }
@@ -119,35 +90,31 @@ function saveState() {
 }
 
 function todayKey() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function escapeDate(value) {
-  return String(value || "");
+  const date = new Date();
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
 function $(id) {
   return document.getElementById(id);
 }
 
+function el(tag, text, className = "") {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
 function showToast(message) {
   const toast = $("toast");
   toast.textContent = message;
   toast.classList.remove("hidden");
-
   clearTimeout(showToast.timer);
-  showToast.timer = setTimeout(() => {
-    toast.classList.add("hidden");
-  }, 2400);
+  showToast.timer = setTimeout(() => toast.classList.add("hidden"), 2400);
 }
 
 function openModal(content) {
-  $("modal-content").replaceChildren();
-  $("modal-content").appendChild(content);
+  $("modal-content").replaceChildren(content);
   $("modal-backdrop").classList.remove("hidden");
 }
 
@@ -155,26 +122,33 @@ function closeModal() {
   $("modal-backdrop").classList.add("hidden");
 }
 
-function createElement(tag, text, className = "") {
-  const element = document.createElement(tag);
-
-  if (className) {
-    element.className = className;
-  }
-
-  if (text !== undefined) {
-    element.textContent = text;
-  }
-
-  return element;
+function claimDailyIncense() {
+  if (state.lastIncenseClaimDate === todayKey()) return false;
+  state.incense += 3;
+  state.lastIncenseClaimDate = todayKey();
+  saveState();
+  return true;
 }
 
-function renderAll() {
-  renderDashboard();
-  renderTasks();
-  renderGods();
-  renderRecords();
-  renderDailyTip();
+function updateStreak() {
+  const today = todayKey();
+  if (state.lastStudyDate === today) return;
+  if (!state.lastStudyDate) {
+    state.streak = 1;
+  } else {
+    const previous = new Date(`${state.lastStudyDate}T00:00:00`);
+    const current = new Date(`${today}T00:00:00`);
+    const days = Math.round((current - previous) / 86400000);
+    state.streak = days === 1 ? state.streak + 1 : 1;
+  }
+  state.lastStudyDate = today;
+  if (state.streak === 3) claimReward("streak-3", "连续学习 3 天徽章");
+  if (state.streak === 7) claimReward("streak-7", "连续学习 7 天资料兑换资格");
+}
+
+function claimReward(key, title) {
+  if (state.rewards.some((item) => item.key === key)) return;
+  state.rewards.push({ key, title, date: todayKey() });
 }
 
 function renderDashboard() {
@@ -183,6 +157,7 @@ function renderDashboard() {
   $("side-points").textContent = state.points;
   $("streak").textContent = state.streak;
   $("study-minutes").textContent = state.studyMinutes;
+  $("mistake-count").textContent = state.mistakes.length;
 
   if (!state.exam) {
     $("exam-type").textContent = "未设置";
@@ -193,27 +168,19 @@ function renderDashboard() {
   }
 
   $("exam-type").textContent = state.exam;
-  $("target-score").textContent =
-    state.target ? `目标：${state.target}` : "尚未设置目标";
-
-  $("profile-summary").textContent =
-    `${state.exam} · 每日 ${state.dailyMinutes} 分钟`;
+  $("target-score").textContent = state.target ? `目标：${state.target}` : "尚未设置目标";
+  $("profile-summary").textContent = `${state.exam} · 每日 ${state.dailyMinutes} 分钟`;
 
   if (!state.examDate) {
     $("days-left").textContent = "—";
   } else {
-    const today = new Date();
-    const examDate = new Date(`${state.examDate}T00:00:00`);
-    const days = Math.ceil((examDate - today) / 86400000);
+    const days = Math.ceil((new Date(`${state.examDate}T00:00:00`) - new Date()) / 86400000);
     $("days-left").textContent = Math.max(0, days);
   }
 }
 
 function getTasks() {
-  if (!state.exam || !EXAMS[state.exam]) {
-    return [];
-  }
-
+  if (!EXAMS[state.exam]) return [];
   return EXAMS[state.exam].tasks.map((task, index) => ({
     id: `${state.exam}-${index}`,
     title: task[0],
@@ -225,436 +192,340 @@ function getTasks() {
 function renderTasks() {
   const list = $("task-list");
   list.replaceChildren();
-
   const tasks = getTasks();
-  const completedToday = state.completedTasks[todayKey()] || [];
-  let completedCount = 0;
+  const completed = state.completedTasks[todayKey()] || [];
+  let count = 0;
 
   if (!tasks.length) {
-    const empty = createElement(
-      "p",
-      "请先点击右上角“设置”，选择你的考试类型。",
-      "muted"
-    );
-    list.appendChild(empty);
+    list.appendChild(el("p", "请先点击右上角“设置”，选择你的考试类型。", "muted"));
     $("task-progress").textContent = "0/0";
     return;
   }
 
   tasks.forEach((task) => {
-    const completed = completedToday.includes(task.id);
-
-    if (completed) {
-      completedCount++;
-    }
-
-    const item = createElement(
-      "div",
-      undefined,
-      `task-item${completed ? " completed" : ""}`
-    );
-
-    const icon = createElement(
-      "span",
-      completed ? "✓" : "✦",
-      "task-icon"
-    );
-
-    const info = createElement("div", undefined, "task-info");
-    info.appendChild(createElement("strong", task.title));
-    info.appendChild(
-      createElement(
-        "small",
-        `${task.duration} · 完成后获得 ${task.reward} 香火值`
-      )
-    );
-
-    const button = createElement(
-      "button",
-      completed ? "已完成" : "完成任务",
-      `button ${completed ? "button-secondary" : "button-primary"}`
-    );
-
-    button.disabled = completed;
-    button.addEventListener("click", () => completeTask(task));
-
-    item.append(icon, info, button);
+    const done = completed.includes(task.id);
+    if (done) count++;
+    const item = el("div", undefined, `task-item${done ? " completed" : ""}`);
+    item.appendChild(el("span", done ? "✓" : "✦", "task-icon"));
+    const info = el("div", undefined, "task-info");
+    info.appendChild(el("strong", task.title));
+    info.appendChild(el("small", `${task.duration} · 完成后获得 ${task.reward} 香火值`));
+    const button = el("button", done ? "已完成" : "完成任务", `button ${done ? "button-secondary" : "button-primary"}`);
+    button.disabled = done;
+    button.addEventListener("click", () => {
+      if (!state.completedTasks[todayKey()]) state.completedTasks[todayKey()] = [];
+      state.completedTasks[todayKey()].push(task.id);
+      state.points += task.reward;
+      state.incense += 1;
+      updateStreak();
+      saveState();
+      renderAll();
+      showToast(`任务完成，获得 ${task.reward} 点香火值和 1 炷香`);
+    });
+    item.append(info, button);
     list.appendChild(item);
   });
-
-  $("task-progress").textContent = `${completedCount}/${tasks.length}`;
+  $("task-progress").textContent = `${count}/${tasks.length}`;
 }
 
-function completeTask(task) {
-  const key = todayKey();
-
-  if (!state.completedTasks[key]) {
-    state.completedTasks[key] = [];
-  }
-
-  if (state.completedTasks[key].includes(task.id)) {
+function offerIncense(god) {
+  if (state.incense < 1) {
+    showToast("香火不足，完成学习任务可以获得香");
     return;
   }
-
-  state.completedTasks[key].push(task.id);
-  state.points += task.reward;
-  state.incense += 1;
-
-  updateStreak();
-
+  state.incense -= 1;
+  state.points += 5;
+  state.selectedGod = god.id;
   saveState();
   renderAll();
-
-  showToast(`任务完成，获得 ${task.reward} 香火值和 1 炷香`);
-}
-
-function updateStreak() {
-  const today = todayKey();
-
-  if (state.lastStudyDate === today) {
-    return;
+  const card = document.querySelector(`[data-god-id="${god.id}"]`);
+  if (card) {
+    card.classList.add("offering");
+    setTimeout(() => card.classList.remove("offering"), 1400);
   }
-
-  if (!state.lastStudyDate) {
-    state.streak = 1;
-  } else {
-    const previous = new Date(`${state.lastStudyDate}T00:00:00`);
-    const current = new Date(`${today}T00:00:00`);
-    const days = Math.round((current - previous) / 86400000);
-
-    state.streak = days === 1 ? state.streak + 1 : 1;
-  }
-
-  state.lastStudyDate = today;
-
-  if (state.streak === 3) {
-    claimReward("streak-3", "连续学习 3 天徽章");
-  }
-
-  if (state.streak === 7) {
-    claimReward("streak-7", "连续学习 7 天资料兑换资格");
-  }
-}
-
-function claimReward(key, title) {
-  if (state.rewards.some((reward) => reward.key === key)) {
-    return false;
-  }
-
-  state.rewards.push({
-    key,
-    title,
-    date: todayKey()
-  });
-
-  return true;
+  showToast(`已向${god.name}上香，获得 5 点香火值`);
 }
 
 function renderGods() {
   const list = $("gods-list");
   list.replaceChildren();
-
   GODS.forEach((god, index) => {
-    const card = createElement("article", undefined, "god-card");
+    const card = el("article", undefined, "god-card");
+    card.dataset.godId = god.id;
+    card.style.setProperty("--god-color", ["rgba(255,214,165,.16)", "rgba(160,196,255,.16)", "rgba(202,255,191,.14)", "rgba(255,198,255,.14)"][index]);
+    card.style.setProperty("--god-avatar", ["#ffd6a5", "#a0c4ff", "#caffbf", "#ffc6ff"][index]);
+    card.appendChild(el("div", god.icon, "god-avatar"));
+    card.appendChild(el("h3", god.name));
+    card.appendChild(el("small", `专注：${god.focus}`, "muted"));
+    card.appendChild(el("p", god.description));
 
-    card.style.setProperty(
-      "--god-color",
-      [
-        "rgba(255, 214, 165, .16)",
-        "rgba(160, 196, 255, .16)",
-        "rgba(202, 255, 191, .14)",
-        "rgba(255, 198, 255, .14)"
-      ][index]
-    );
-
-    card.style.setProperty(
-      "--god-avatar",
-      [
-        "#ffd6a5",
-        "#a0c4ff",
-        "#caffbf",
-        "#ffc6ff"
-      ][index]
-    );
-
-    const avatar = createElement("div", god.icon, "god-avatar");
-    const title = createElement("h3", god.name);
-    const focus = createElement("small", `专注：${god.focus}`, "muted");
-    const desc = createElement("p", god.description);
-
-    const button = createElement(
-      "button",
-      state.selectedGod === god.id ? "当前导师" : "选择导师",
-      `button ${state.selectedGod === god.id ? "button-secondary" : "button-primary"}`
-    );
-
-    button.addEventListener("click", () => {
+    const actions = el("div", undefined, "god-actions");
+    const select = el("button", state.selectedGod === god.id ? "当前导师" : "选择导师", `button ${state.selectedGod === god.id ? "button-secondary" : "button-primary"}`);
+    select.addEventListener("click", () => {
       state.selectedGod = god.id;
       saveState();
-      renderGods();
-      $("daily-tip").textContent = god.advice;
+      renderAll();
       showToast(`已选择${god.name}`);
     });
-
-    card.append(avatar, title, focus, desc, button);
+    const offer = el("button", "上香 · 1 香", "button offer-button");
+    offer.disabled = state.incense < 1;
+    offer.addEventListener("click", () => offerIncense(god));
+    actions.append(select, offer);
+    card.appendChild(actions);
     list.appendChild(card);
   });
-}
-
-function renderDailyTip() {
-  const god = GODS.find((item) => item.id === state.selectedGod);
-  $("daily-tip").textContent =
-    god ? god.advice : TIPS[new Date().getDate() % TIPS.length];
 }
 
 function renderRecords() {
   const list = $("study-records");
   list.replaceChildren();
-
   if (!state.records.length) {
-    list.appendChild(
-      createElement("p", "还没有学习记录，完成学习后记下来吧。", "muted")
-    );
+    list.appendChild(el("p", "还没有学习记录，完成学习后记下来吧。", "muted"));
     return;
   }
-
   state.records.slice(0, 5).forEach((record) => {
-    const item = createElement("div", undefined, "record-item");
-    item.appendChild(createElement("strong", record.content));
-    item.appendChild(
-      createElement("small", `${record.date} · ${record.minutes} 分钟`)
-    );
+    const item = el("div", undefined, "record-item");
+    item.append(el("strong", record.content), el("small", `${record.date} · ${record.minutes} 分钟`));
     list.appendChild(item);
   });
 }
 
+function renderDailyTip() {
+  const god = GODS.find((item) => item.id === state.selectedGod);
+  $("daily-tip").textContent = god ? god.advice : TIPS[new Date().getDate() % TIPS.length];
+}
+
+function renderAll() {
+  renderDashboard();
+  renderTasks();
+  renderGods();
+  renderRecords();
+  renderDailyTip();
+}
+
 function saveStudyRecord(event) {
   event.preventDefault();
-
   const minutes = Number($("study-duration").value);
   const content = $("study-content").value.trim();
-
   if (!Number.isFinite(minutes) || minutes < 1 || !content) {
     showToast("请填写有效的学习时长和内容");
     return;
   }
-
-  state.records.unshift({
-    id: Date.now(),
-    date: todayKey(),
-    minutes,
-    content
-  });
-
+  state.records.unshift({ id: Date.now(), date: todayKey(), minutes, content });
   state.records = state.records.slice(0, 100);
   state.studyMinutes += minutes;
+  state.points += Math.min(20, Math.ceil(minutes / 10));
   updateStreak();
-
   saveState();
   renderAll();
-
   $("study-form").reset();
-  showToast("学习记录已保存");
+  showToast("学习记录已保存，获得香火值");
 }
 
 function openSettings() {
   const wrapper = document.createElement("div");
-
-  wrapper.appendChild(createElement("h2", "设置你的备考计划"));
-
-  const form = createElement("form", undefined, "modal-form");
-
-  const examLabel = createElement("label", "考试类型");
-  const examSelect = document.createElement("select");
-  examSelect.id = "setting-exam";
-  examSelect.required = true;
-
-  [
-    ["", "请选择考试"],
-    ["IELTS", "IELTS"],
-    ["TOEFL", "TOEFL"],
-    ["AP", "AP"],
-    ["IB", "IB"]
-  ].forEach(([value, text]) => {
-    const option = createElement("option", text);
+  wrapper.appendChild(el("h2", "设置你的备考计划"));
+  const form = el("form", undefined, "modal-form");
+  const exam = document.createElement("select");
+  exam.required = true;
+  [["", "请选择考试"], ["IELTS", "IELTS"], ["TOEFL", "TOEFL"], ["AP", "AP"], ["IB", "IB"]].forEach(([value, text]) => {
+    const option = el("option", text);
     option.value = value;
-    examSelect.appendChild(option);
+    exam.appendChild(option);
   });
-
-  examSelect.value = state.exam;
-  examLabel.appendChild(examSelect);
-
-  const targetLabel = createElement("label", "目标分数 / 科目");
-  const targetInput = document.createElement("input");
-  targetInput.id = "setting-target";
-  targetInput.type = "text";
-  targetInput.maxLength = 30;
-  targetInput.placeholder = "例如：IELTS 7.0";
-  targetInput.value = state.target;
-  targetLabel.appendChild(targetInput);
-
-  const dateLabel = createElement("label", "考试日期");
-  const dateInput = document.createElement("input");
-  dateInput.id = "setting-date";
-  dateInput.type = "date";
-  dateInput.value = escapeDate(state.examDate);
-  dateLabel.appendChild(dateInput);
-
-  const minutesLabel = createElement("label", "每日学习时长");
-  const minutesInput = document.createElement("input");
-  minutesInput.id = "setting-minutes";
-  minutesInput.type = "number";
-  minutesInput.min = "10";
-  minutesInput.max = "600";
-  minutesInput.value = state.dailyMinutes;
-  minutesLabel.appendChild(minutesInput);
-
-  const submit = createElement(
-    "button",
-    "保存并生成我的任务",
-    "button button-primary"
-  );
+  exam.value = state.exam;
+  const target = document.createElement("input");
+  target.placeholder = "目标分数 / 科目，例如：IELTS 7.0";
+  target.value = state.target;
+  const date = document.createElement("input");
+  date.type = "date";
+  date.value = state.examDate;
+  const minutes = document.createElement("input");
+  minutes.type = "number";
+  minutes.min = "10";
+  minutes.max = "600";
+  minutes.value = state.dailyMinutes;
+  [["考试类型", exam], ["目标分数 / 科目", target], ["考试日期", date], ["每日学习时长", minutes]].forEach(([text, input]) => {
+    const label = el("label", text);
+    label.appendChild(input);
+    form.appendChild(label);
+  });
+  const submit = el("button", "保存并生成我的任务", "button button-primary");
   submit.type = "submit";
-
-  form.append(examLabel, targetLabel, dateLabel, minutesLabel, submit);
-
+  form.appendChild(submit);
   form.addEventListener("submit", (event) => {
     event.preventDefault();
-
-    state.exam = examSelect.value;
-    state.target = targetInput.value.trim();
-    state.examDate = dateInput.value;
-    state.dailyMinutes = Math.max(
-      10,
-      Math.min(600, Number(minutesInput.value) || 30)
-    );
-
+    if (!exam.value) return;
+    state.exam = exam.value;
+    state.target = target.value.trim();
+    state.examDate = date.value;
+    state.dailyMinutes = Math.max(10, Math.min(600, Number(minutes.value) || 30));
     saveState();
     closeModal();
     renderAll();
     showToast("备考计划已更新");
   });
-
   wrapper.appendChild(form);
   openModal(wrapper);
 }
 
 function openMistakes() {
   const wrapper = document.createElement("div");
-  wrapper.appendChild(createElement("h2", "错题记录"));
-
-  const form = createElement("form", undefined, "modal-form");
-
+  wrapper.appendChild(el("h2", "错题记录"));
+  const form = el("form", undefined, "modal-form");
   const subject = document.createElement("input");
   subject.placeholder = "科目，例如：Reading";
-  subject.maxLength = 30;
   subject.required = true;
-
   const question = document.createElement("textarea");
   question.placeholder = "题目或知识点";
-  question.maxLength = 500;
   question.required = true;
-
   const answer = document.createElement("textarea");
   answer.placeholder = "正确答案 / 解析";
-  answer.maxLength = 500;
   answer.required = true;
-
-  const submit = createElement("button", "保存错题", "button button-primary");
+  const submit = el("button", "保存错题", "button button-primary");
   submit.type = "submit";
-
   form.append(subject, question, answer, submit);
-
-  const list = createElement("div");
-
-  state.mistakes.slice(0, 10).forEach((mistake) => {
-    const item = createElement("div", undefined, "mistake-item");
-    item.appendChild(createElement("strong", mistake.subject));
-    item.appendChild(createElement("small", mistake.question));
-    item.appendChild(createElement("small", `解析：${mistake.answer}`));
-    list.appendChild(item);
-  });
-
   form.addEventListener("submit", (event) => {
     event.preventDefault();
-
-    state.mistakes.unshift({
-      id: Date.now(),
-      subject: subject.value.trim(),
-      question: question.value.trim(),
-      answer: answer.value.trim()
-    });
-
+    state.mistakes.unshift({ subject: subject.value.trim(), question: question.value.trim(), answer: answer.value.trim() });
     saveState();
-    $("mistake-count").textContent = state.mistakes.length;
     closeModal();
+    renderDashboard();
     showToast("错题已保存");
   });
-
-  wrapper.append(form, list);
+  wrapper.appendChild(form);
+  state.mistakes.slice(0, 10).forEach((mistake) => {
+    const item = el("div", undefined, "mistake-item");
+    item.append(el("strong", mistake.subject), el("small", mistake.question), el("small", `解析：${mistake.answer}`));
+    wrapper.appendChild(item);
+  });
   openModal(wrapper);
 }
 
 function openRewards() {
   const wrapper = document.createElement("div");
-  wrapper.appendChild(createElement("h2", "成长奖励"));
-
-  if (!state.rewards.length) {
-    wrapper.appendChild(
-      createElement(
-        "p",
-        "连续学习 3 天可获得第一个成长徽章。",
-        "muted"
-      )
-    );
-  } else {
-    state.rewards.forEach((reward) => {
-      const item = createElement("div", undefined, "reward-item");
-      item.appendChild(createElement("strong", `✦ ${reward.title}`));
-      item.appendChild(createElement("small", `获得日期：${reward.date}`));
-      wrapper.appendChild(item);
-    });
-  }
-
-  const note = createElement(
-    "p",
-    "未来可以使用香火值兑换学习资料和个人装饰。",
-    "muted"
-  );
-
-  wrapper.appendChild(note);
+  wrapper.appendChild(el("h2", "成长奖励与香火规则"));
+  wrapper.appendChild(el("p", "完成任务：获得香火值和 1 炷香。", "muted"));
+  wrapper.appendChild(el("p", "每日首次打开：自动领取 3 炷免费香。", "muted"));
+  wrapper.appendChild(el("p", "每次上香：消耗 1 炷香，获得 5 点香火值并触发考神动画。", "muted"));
+  wrapper.appendChild(el("p", "连续学习 3 天或 7 天：解锁成长奖励。", "muted"));
+  wrapper.appendChild(el("p", "香火值和香只用于虚拟学习激励，不代表真实考试分数或结果。", "muted"));
+  state.rewards.forEach((reward) => wrapper.appendChild(el("p", `✦ ${reward.title} · ${reward.date}`, "reward-item")));
   openModal(wrapper);
 }
 
 function init() {
+  const received = claimDailyIncense();
   $("study-form").addEventListener("submit", saveStudyRecord);
   $("open-settings").addEventListener("click", openSettings);
   $("mobile-settings").addEventListener("click", openSettings);
   $("open-mistakes").addEventListener("click", openMistakes);
   $("open-rewards").addEventListener("click", openRewards);
   $("close-modal").addEventListener("click", closeModal);
-
   $("modal-backdrop").addEventListener("click", (event) => {
-    if (event.target.id === "modal-backdrop") {
-      closeModal();
-    }
+    if (event.target.id === "modal-backdrop") closeModal();
   });
-
   $("hero-action").addEventListener("click", () => {
-    if (!state.exam) {
-      openSettings();
-    } else {
-      $("tasks-section").scrollIntoView({ behavior: "smooth" });
-    }
+    if (!state.exam) openSettings();
+    else $("tasks-section").scrollIntoView({ behavior: "smooth" });
   });
-
-  $("mistake-count").textContent = state.mistakes.length;
-
   renderAll();
+  if (received) showToast("今日已领取 3 炷免费香");
 }
 
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", init);
 } else {
   init();
+}
+```
+
+**二、把下面 CSS 追加到 `style.css` 最底部**
+
+```css
+.god-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.offer-button {
+  color: #251b04;
+  background: var(--accent);
+}
+
+.offer-button:disabled {
+  cursor: not-allowed;
+  opacity: .45;
+}
+
+.god-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.god-card.offering {
+  animation: offering-card 1.4s ease;
+}
+
+.god-card.offering .god-avatar {
+  animation: offering-avatar 1.4s ease;
+}
+
+.god-card.offering::after {
+  content: "♨";
+  position: absolute;
+  top: 28px;
+  left: 38px;
+  color: rgba(255, 255, 255, .85);
+  font-size: 28px;
+  pointer-events: none;
+  animation: incense-smoke 1.4s ease-out forwards;
+}
+
+@keyframes offering-card {
+  0%, 100% {
+    transform: translateY(0);
+    box-shadow: var(--shadow);
+  }
+
+  40% {
+    transform: translateY(-4px);
+    box-shadow: 0 0 30px rgba(255, 209, 102, .55);
+  }
+}
+
+@keyframes offering-avatar {
+  0%, 100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+
+  45% {
+    transform: scale(1.12);
+    filter: brightness(1.35);
+  }
+}
+
+@keyframes incense-smoke {
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scale(.7) rotate(-8deg);
+  }
+
+  30% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-55px) scale(1.35) rotate(10deg);
+  }
+}
+
+@media (max-width: 650px) {
+  .god-actions {
+    grid-template-columns: 1fr;
+  }
 }
