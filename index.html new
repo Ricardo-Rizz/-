@@ -1,0 +1,216 @@
+```html
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101827">
+  <title>Exam God｜备考成长助手</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-shell">
+
+    <header class="topbar">
+      <a class="brand" href="#">
+        <span class="brand-mark">EG</span>
+        <span>
+          <strong>Exam God</strong>
+          <small>备考成长助手</small>
+        </span>
+      </a>
+
+      <div class="top-stats">
+        <span class="pill">
+          香 <b id="top-incense">0</b>
+        </span>
+        <span class="pill">
+          香火值 <b id="top-points">0</b>
+        </span>
+        <button class="button button-secondary" id="open-settings">
+          设置
+        </button>
+      </div>
+    </header>
+
+    <main class="container">
+
+      <section class="hero">
+        <div>
+          <p class="eyebrow">你的备考成长空间</p>
+          <h1>让每一次学习，<br>都离目标分数更近。</h1>
+          <p class="hero-text">
+            完成每日学习任务，积累香火值，领取备考资料与成长奖励。
+          </p>
+          <button class="button button-primary" id="hero-action">
+            开始今日任务
+          </button>
+        </div>
+
+        <div class="hero-symbol">✦</div>
+      </section>
+
+      <section class="dashboard-grid">
+        <div class="stat-card">
+          <span class="stat-label">备考考试</span>
+          <strong id="exam-type">未设置</strong>
+          <small id="target-score">请先设置目标</small>
+        </div>
+
+        <div class="stat-card">
+          <span class="stat-label">距离考试</span>
+          <strong id="days-left">—</strong>
+          <small>天</small>
+        </div>
+
+        <div class="stat-card">
+          <span class="stat-label">连续学习</span>
+          <strong id="streak">0</strong>
+          <small>天</small>
+        </div>
+
+        <div class="stat-card">
+          <span class="stat-label">累计学习</span>
+          <strong id="study-minutes">0</strong>
+          <small>分钟</small>
+        </div>
+      </section>
+
+      <div class="content-grid">
+
+        <section class="main-column">
+
+          <section class="panel" id="tasks-section">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">今天要做什么</p>
+                <h2>每日学习任务</h2>
+              </div>
+              <span class="progress-text" id="task-progress">0/0</span>
+            </div>
+
+            <p class="muted">
+              完成任务后获得香火值，连续行动比偶尔努力更重要。
+            </p>
+
+            <div class="task-list" id="task-list"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">你的学习陪伴</p>
+                <h2>选择学习导师</h2>
+              </div>
+            </div>
+
+            <div class="gods-grid" id="gods-list"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">记录每一次进步</p>
+                <h2>学习记录</h2>
+              </div>
+            </div>
+
+            <form id="study-form" class="form-grid">
+              <label>
+                学习时长
+                <input id="study-duration" type="number" min="1" max="1440" placeholder="例如 30" required>
+              </label>
+
+              <label>
+                学习内容
+                <input id="study-content" type="text" maxlength="100" placeholder="例如：完成阅读练习" required>
+              </label>
+
+              <button class="button button-primary" type="submit">
+                保存学习记录
+              </button>
+            </form>
+
+            <div class="record-list" id="study-records"></div>
+          </section>
+
+        </section>
+
+        <aside class="side-column">
+
+          <section class="panel side-panel">
+            <div class="side-title">
+              <span class="large-icon">♨</span>
+              <div>
+                <strong>我的成长</strong>
+                <small id="profile-summary">还没有设置备考计划</small>
+              </div>
+            </div>
+
+            <div class="points-box">
+              <span>当前香火值</span>
+              <strong id="side-points">0</strong>
+            </div>
+
+            <div class="side-actions">
+              <button class="button button-secondary" id="open-mistakes">
+                错题记录
+                <span id="mistake-count">0</span>
+              </button>
+
+              <button class="button button-secondary" id="open-rewards">
+                成长奖励
+              </button>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-heading compact">
+              <h2>今日提醒</h2>
+            </div>
+            <div class="tip-card" id="daily-tip">
+              先完成一个最小任务，今天就已经开始变好了。
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-heading compact">
+              <h2>学习说明</h2>
+            </div>
+            <ul class="explain-list">
+              <li>完成每日任务获得香火值</li>
+              <li>记录学习时长，追踪备考进度</li>
+              <li>连续学习可以解锁成长徽章</li>
+              <li>当前数据仅保存在本设备</li>
+            </ul>
+          </section>
+
+        </aside>
+      </div>
+    </main>
+
+    <nav class="mobile-nav">
+      <a href="#tasks-section">任务</a>
+      <a href="#gods-list">导师</a>
+      <a href="#study-form">记录</a>
+      <button id="mobile-settings">设置</button>
+    </nav>
+
+    <footer>
+      © 2026 Exam God · 备考计划与学习激励工具
+    </footer>
+  </div>
+
+  <div class="modal-backdrop hidden" id="modal-backdrop">
+    <div class="modal" role="dialog" aria-modal="true">
+      <button class="modal-close" id="close-modal" aria-label="关闭">×</button>
+      <div id="modal-content"></div>
+    </div>
+  </div>
+
+  <div class="toast hidden" id="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
+```
