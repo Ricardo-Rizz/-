@@ -1345,3 +1345,26 @@ footer {
     text-decoration: none;
   }
 }
+css
+.hidden {
+  display: none !important;
+}
+
+.modal-backdrop.hidden {
+  display: none !important;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, .68);
+}
+
+.modal {
+  position: relative;
+  z-index: 21;
+}
